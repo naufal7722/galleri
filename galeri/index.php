@@ -1,3 +1,6 @@
+<?php
+include "koneksi.php";
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -23,7 +26,10 @@
         .gallery .card {
             margin-bottom: 20px;
         }
+.card{
+    transform: scale(1.05);
 
+}
         .modal-body img {
             width: 100%;
             object-fit: contain;
@@ -110,6 +116,7 @@
 <body>
 
 <ul class="nav nav-pills mb-3 justify-content-center">
+<li class="nav-item"><a class="nav-link" href="index.php">HOME</a></li>
     <li class="nav-item"><a class="nav-link" href="login.php">LOGIN</a></li>
     <li class="nav-item"><a class="nav-link" href="register.php">REGISTER</a></li>
 </ul>
@@ -119,27 +126,75 @@
 <div class="container">
     <h1 class="my-4 text-center">GALERI FOTO</h1>
     <p class="text-center">Selamat Datang di <b>WEBSITE GALERI FOTO</b></p>
+    <h5 class="my-4 text-center"> ALBUM</h5>
+        <div class="album-section d-flex justify-content-center mb-4">
+    <?php
+    // Array warna yang ingin digunakan untuk setiap album
+    $colors = ['#FF5733', '#33FFA1', '#3357FF', '#', '#', '#']; 
+    
+    // Query untuk mendapatkan semua album
+    $album_sql = mysqli_query($conn, "SELECT * FROM album");
+    
+    // Iterasi album dengan warna yang berbeda
+    $i = 0; // Untuk indeks warna
+    while ($album = mysqli_fetch_array($album_sql)) {
+        // Ambil warna dari array berdasarkan indeks
+        $color = $colors[$i % count($colors)]; // Menggunakan modulus agar warna berulang jika album lebih banyak dari warna
+    ?>
+        <a href="index.php?albumid=<?=$album['albumid']?>" class="btn mx-2" style="background-color: <?=$color?>; color: white;">
+            <?=$album['namaalbum']?>
+        </a>
+    <?php
+        $i++; // Menambah indeks warna
+    }
+    ?>
+</div>
 
     <div class="row gallery d-flex justify-content-center">
-        <?php
-        include "koneksi.php";
-        $search = isset($_GET['search']) ? mysqli_real_escape_string($conn, $_GET['search']) : '';
-        $sql = mysqli_query($conn, "SELECT * FROM foto, user WHERE foto.UserID=user.UserID");
-        while ($data = mysqli_fetch_array($sql)) {
-            // Ambil jumlah like dari tabel likefoto berdasarkan fotoid
-            $fotoID = $data['fotoid'];
-            $sql2 = mysqli_query($conn, "SELECT COUNT(*) as jumlah_like FROM likefoto WHERE fotoid='$fotoID'");
-            $like_data = mysqli_fetch_assoc($sql2);
-            $jumlah_like = $like_data['jumlah_like'];
-        ?>
-    <div class=" col-md-4 col-lg-2 text-center"> <!-- Center the content -->
+    <h5 class="my-4 text-center">DAFTAR FOTO</h5>
+    <?php
+    // Cek apakah ada input pencarian atau album yang dipilih
+    $search = isset($_GET['search']) ? mysqli_real_escape_string($conn, $_GET['search']) : '';
+    $albumid = isset($_GET['albumid']) ? mysqli_real_escape_string($conn, $_GET['albumid']) : '';
+    
+    // Menyiapkan query dasar
+    $sql_base = "SELECT * FROM foto, user WHERE foto.userid=user.userid";
+    
+    // Menambahkan kondisi untuk album dan pencarian
+    $conditions = [];
+    
+    if (!empty($albumid)) {
+        $conditions[] = "foto.albumid='$albumid'";
+    }
+    
+    if (!empty($search)) {
+        $conditions[] = "judulfoto LIKE '%$search%'";
+    }
+    
+    // Menggabungkan semua kondisi
+    if (!empty($conditions)) {
+        $sql = $sql_base . " AND " . implode(' AND ', $conditions);
+    } else {
+        // Jika tidak ada album yang dipilih dan tidak ada pencarian, ambil semua foto
+        $sql = $sql_base;
+    }
+    
+    $sql_result = mysqli_query($conn, $sql);
+    while ($data = mysqli_fetch_array($sql_result)) {
+        // Ambil jumlah like dari tabel likefoto berdasarkan fotoid
+        $fotoID = $data['fotoid'];
+        $sql2 = mysqli_query($conn, "SELECT COUNT(*) as jumlah_like FROM likefoto WHERE fotoid='$fotoID'");
+        $like_data = mysqli_fetch_assoc($sql2);
+        $jumlah_like = $like_data['jumlah_like'];
+    ?>
+    
+        <div class="col-md-4 col-lg-2 text-center">
             <div class="card">
                 <a href="#" data-bs-toggle="modal" data-bs-target="#fotoModal<?=$data['fotoid']?>">
                     <img src="aset/<?=$data['lokasifile']?>" class="card-img-top" alt="<?=$data['judulfoto']?>">
                 </a>
-                <div class="card-body text-center">
-                    <!-- Like icon -->
-                    
+                <div class="card-body">
+                    <p class="card-text"><strong><?=$data['judulfoto']?></strong></p>
                 </div>
             </div>
         </div>
